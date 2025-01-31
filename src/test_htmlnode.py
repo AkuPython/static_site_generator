@@ -1,6 +1,6 @@
 import unittest
 
-from htmlnode import HTMLNode, LeafNode
+from htmlnode import HTMLNode, LeafNode, ParentNode
 
 
 class TestHTMLNode(unittest.TestCase):
@@ -12,9 +12,10 @@ class TestHTMLNode(unittest.TestCase):
         node = HTMLNode("a", "test.url", props={"href": "http://test.url"})
         self.assertEqual(node.props_to_html(), ' href="http://test.url"')
 
-    def to_html(self):
+    def test_to_html(self):
         node = HTMLNode("a", "test.url")
-        self.assertEqual(node.to_html(), NotImplemented)
+        with self.assertRaises(NotImplementedError):
+            node.to_html()
 
 
 class TestLeafNode(unittest.TestCase):
@@ -23,8 +24,9 @@ class TestLeafNode(unittest.TestCase):
         self.assertEqual(repr(node), "HTMLNode(h1, Hello, None, {'href': 'test.url'})")
 
     def test_to_html(self):
-        # node = LeafNode("a", None)
-        # self.assertRaises(node.to_html(), ValueError)
+        node = LeafNode("a", None)
+        with self.assertRaises(ValueError):
+            node.to_html()
         node1 = LeafNode(None, "test") # 
         self.assertEqual(node1.to_html(), "test")
         node2 = LeafNode("a", "test")
@@ -36,7 +38,31 @@ class TestLeafNode(unittest.TestCase):
         node = LeafNode("a", "test.url", props={"href": "http://test.url"})
         self.assertEqual(node.props_to_html(), ' href="http://test.url"')
 
+
+class TestParentNode(unittest.TestCase):
+    def test_repr(self):
+        test_node = LeafNode(None, "test")
+        node = ParentNode("h1", [test_node])
+        self.assertEqual(repr(node), "HTMLNode(h1, None, [HTMLNode(None, test, None, None)], None)")
     
+    def test_to_html(self):
+        node = LeafNode("b", "bold")
+        node1 = ParentNode(None, ["test"]) # 
+        with self.assertRaises(ValueError):
+            node1.to_html()
+        node2 = ParentNode("a", [node])
+        self.assertEqual(node2.to_html(), "<a><b>bold</b></a>")
+        node3 = ParentNode("a", [node, node2], {"href": "http://test.url"})
+        self.assertEqual(node3.to_html(), '<a href="http://test.url"><b>bold</b><a><b>bold</b></a></a>')
+        node = ParentNode("p",
+                [
+                    LeafNode("b", "Bold text"),
+                    LeafNode(None, "Normal text"),
+                    LeafNode("i", "italic text"),
+                    LeafNode(None, "Normal text"),
+                ],
+            )
+        self.assertEqual(node.to_html(), "<p><b>Bold text</b>Normal text<i>italic text</i>Normal text</p>")
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(verbosity=2)
