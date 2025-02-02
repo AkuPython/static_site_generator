@@ -51,7 +51,6 @@ class TestHelperFunctions(unittest.TestCase):
         new_nodes1 = helper_functions.split_nodes_delimiter([node], "`", TextType.CODE)
         new_nodes2 = helper_functions.split_nodes_delimiter(new_nodes1, "**", TextType.BOLD)
         new_nodes3 = helper_functions.split_nodes_delimiter(new_nodes2, "*", TextType.ITALIC)
-        print(new_nodes3)
         self.assertEqual(new_nodes1,
                         [
                             TextNode("This is **bold text** with a ", TextType.TEXT),
@@ -76,7 +75,22 @@ class TestHelperFunctions(unittest.TestCase):
                             TextNode("some_italics", TextType.ITALIC),
                             TextNode("", TextType.TEXT),
                         ])
-        
+       
+    def test_extract_images(self):
+        text = "This is text with a ![rick roll](https://i.imgur.com/aKaOqIh.gif) and ![obi wan](https://i.imgur.com/fJRm4Vk.jpeg)"
+        text2 = "This is text with a [rick roll](https://i.imgur.com/aKaOqIh.gif) and [obi wan](https://i.imgur.com/fJRm4Vk.jpeg)"
+        self.assertEqual(helper_functions.extract_markdown_images(text), 
+                         [("rick roll", "https://i.imgur.com/aKaOqIh.gif"),
+                          ("obi wan", "https://i.imgur.com/fJRm4Vk.jpeg")])
+        self.assertEqual(helper_functions.extract_markdown_images(text2), [])
+
+    def test_extract_links(self):
+        text = "This is text with a link [to boot dev](https://www.boot.dev) and [to youtube](https://www.youtube.com/@bootdotdev)"
+        text2 = "This is text with a link ![to boot dev](https://www.boot.dev) and ![to youtube](https://www.youtube.com/@bootdotdev)"
+        self.assertEqual(helper_functions.extract_markdown_links(text), 
+                         [("to boot dev", "https://www.boot.dev"),
+                          ("to youtube", "https://www.youtube.com/@bootdotdev")])
+        self.assertEqual(helper_functions.extract_markdown_links(text2), [])
 
 if __name__ == "__main__":
     unittest.main()
