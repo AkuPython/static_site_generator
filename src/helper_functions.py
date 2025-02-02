@@ -25,5 +25,15 @@ def text_node_to_html_node(text_node):
 
 
 def split_nodes_delimiter(old_nodes, delimiter, text_type):
-    pass
+    nodes = []
+    for old_node in old_nodes:
+        if old_node.text_type == TextType.TEXT:
+            for i, text in enumerate(old_node.text.split(delimiter)):
+                if i % 2 == 0:
+                    nodes.append(TextNode(text, TextType.TEXT))
+                else:
+                    nodes.append(TextNode(text, text_type))
+        else:
+            nodes.append(old_node)
+    return nodes
 

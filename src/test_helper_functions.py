@@ -35,6 +35,48 @@ class TestHelperFunctions(unittest.TestCase):
     def test_image(self):
         node = TextNode('test', TextType.IMAGE, "http://test.url")
         self.assertEqual(helper_functions.text_node_to_html_node(node), LeafNode('img', '', props={'src': 'http://test.url', "alt": "test"}))
+    
+    def test_splitnodes_code(self):
+        node = TextNode("This is text with a `code block` word", TextType.TEXT)
+        new_nodes = helper_functions.split_nodes_delimiter([node], "`", TextType.CODE)
+        self.assertEqual(new_nodes, 
+                        [
+                            TextNode("This is text with a ", TextType.TEXT),
+                            TextNode("code block", TextType.CODE),
+                            TextNode(" word", TextType.TEXT),
+                        ])
+
+    def test_splitnodes_bigtest(self):
+        node = TextNode("This is **bold text** with a `code block` word, and *some_italics*", TextType.TEXT)
+        new_nodes1 = helper_functions.split_nodes_delimiter([node], "`", TextType.CODE)
+        new_nodes2 = helper_functions.split_nodes_delimiter(new_nodes1, "**", TextType.BOLD)
+        new_nodes3 = helper_functions.split_nodes_delimiter(new_nodes2, "*", TextType.ITALIC)
+        print(new_nodes3)
+        self.assertEqual(new_nodes1,
+                        [
+                            TextNode("This is **bold text** with a ", TextType.TEXT),
+                            TextNode("code block", TextType.CODE),
+                            TextNode(" word, and *some_italics*", TextType.TEXT),
+                        ])
+        self.assertEqual(new_nodes2,
+                        [
+                            TextNode("This is ", TextType.TEXT),
+                            TextNode("bold text", TextType.BOLD),
+                            TextNode(" with a ", TextType.TEXT),
+                            TextNode("code block", TextType.CODE),
+                            TextNode(" word, and *some_italics*", TextType.TEXT),
+                        ])
+        self.assertEqual(new_nodes3,
+                        [
+                            TextNode("This is ", TextType.TEXT),
+                            TextNode("bold text", TextType.BOLD),
+                            TextNode(" with a ", TextType.TEXT),
+                            TextNode("code block", TextType.CODE),
+                            TextNode(" word, and ", TextType.TEXT),
+                            TextNode("some_italics", TextType.ITALIC),
+                            TextNode("", TextType.TEXT),
+                        ])
+        
 
 if __name__ == "__main__":
     unittest.main()
