@@ -24,7 +24,7 @@ def text_node_to_html_node(text_node):
         case "IMAGE":
             return LeafNode('img', '', props={"src": text_node.url, "alt": text_node.text})
         case _:
-            raise Exception("This sholudn't happen")
+            raise Exception("This shouldn't happen")
 
 
 def split_nodes_delimiter(old_nodes, delimiter, text_type):
@@ -76,4 +76,13 @@ def extract_markdown_images(text):
 
 def extract_markdown_links(text):
     return handle_link_img_regex(text)
+
+def text_to_textnodes(text):
+    nodes = split_nodes_delimiter([TextNode(text, TextType.TEXT)], "**", TextType.BOLD) 
+    nodes = split_nodes_delimiter(nodes, "*", TextType.ITALIC) 
+    nodes = split_nodes_delimiter(nodes, "`", TextType.CODE)
+    nodes = split_nodes_link(nodes)
+    nodes = split_nodes_image(nodes)
+    return nodes
+
 
