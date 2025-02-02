@@ -1,4 +1,5 @@
 import re
+from typing import Text
 from textnode import TextNode, TextType
 from htmlnode import LeafNode
 
@@ -31,6 +32,8 @@ def split_nodes_delimiter(old_nodes, delimiter, text_type):
     for old_node in old_nodes:
         if old_node.text_type == TextType.TEXT:
             for i, text in enumerate(old_node.text.split(delimiter)):
+                if not text:
+                    continue
                 if i % 2 == 0:
                     nodes.append(TextNode(text, TextType.TEXT))
                 else:
@@ -38,6 +41,32 @@ def split_nodes_delimiter(old_nodes, delimiter, text_type):
         else:
             nodes.append(old_node)
     return nodes
+
+def split_nodes_regex(old_nodes, prefix=""):
+    nodes = []
+    for old_node in old_nodes:
+        if old_node.text_type == TextType.TEXT:
+            for i, text in enumerate(re.split(fr'(?<!!)({prefix}\[.+?\]\(.*?\))', old_node.text)):
+                if not text:
+                    continue
+                if i % 2 == 0:
+                    nodes.append(TextNode(text, TextType.TEXT))
+                else:
+                    if prefix:
+                        items = extract_markdown_images(text)
+                        nodes.append(TextNode(items[0][0], TextType.IMAGE, items[0][1]))
+                    else:
+                        items = extract_markdown_links(text)
+                        nodes.append(TextNode(items[0][0], TextType.LINK, items[0][1]))
+        else:
+            nodes.append(old_node)
+    return nodes
+
+def split_nodes_image(old_nodes):
+    return split_nodes_regex(old_nodes, "!")
+
+def split_nodes_link(old_nodes):
+    return split_nodes_regex(old_nodes)
 
 def handle_link_img_regex(text, prefix=""):
     return re.findall(fr'(?:^| ){prefix}\[(.+?)\]\((.+?)\)', text)

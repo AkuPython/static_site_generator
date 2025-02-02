@@ -73,7 +73,6 @@ class TestHelperFunctions(unittest.TestCase):
                             TextNode("code block", TextType.CODE),
                             TextNode(" word, and ", TextType.TEXT),
                             TextNode("some_italics", TextType.ITALIC),
-                            TextNode("", TextType.TEXT),
                         ])
        
     def test_extract_images(self):
@@ -91,6 +90,37 @@ class TestHelperFunctions(unittest.TestCase):
                          [("to boot dev", "https://www.boot.dev"),
                           ("to youtube", "https://www.youtube.com/@bootdotdev")])
         self.assertEqual(helper_functions.extract_markdown_links(text2), [])
+
+    def test_split_images(self):
+        text = "This is text with a ![rick roll](https://i.imgur.com/aKaOqIh.gif) and ![obi wan](https://i.imgur.com/fJRm4Vk.jpeg)"
+        text2 = "This is text with a [rick roll](https://i.imgur.com/aKaOqIh.gif) and [obi wan](https://i.imgur.com/fJRm4Vk.jpeg)"
+        node = TextNode(text, TextType.TEXT)
+        new_nodes = helper_functions.split_nodes_image([node])
+        node2 = TextNode(text2, TextType.TEXT)
+        new_nodes2 = helper_functions.split_nodes_image([node2])
+        self.assertEqual(new_nodes,
+                         [TextNode("This is text with a ", TextType.TEXT),
+                             TextNode("rick roll", TextType.IMAGE, "https://i.imgur.com/aKaOqIh.gif"),
+                             TextNode(" and ", TextType.TEXT),
+                             TextNode("obi wan", TextType.IMAGE, "https://i.imgur.com/fJRm4Vk.jpeg"
+                         )])
+        self.assertEqual(new_nodes2, [TextNode("This is text with a [rick roll](https://i.imgur.com/aKaOqIh.gif) and [obi wan](https://i.imgur.com/fJRm4Vk.jpeg)", TextType.TEXT)])
+
+
+    def test_split_links(self):
+        text = "This is text with a link [to boot dev](https://www.boot.dev) and [to youtube](https://www.youtube.com/@bootdotdev)"
+        text2 = "This is text with a link ![to boot dev](https://www.boot.dev) and ![to youtube](https://www.youtube.com/@bootdotdev)"
+        node = TextNode(text, TextType.TEXT)
+        new_nodes = helper_functions.split_nodes_link([node])
+        node2 = TextNode(text2, TextType.TEXT)
+        new_nodes2 = helper_functions.split_nodes_link([node2])
+        self.assertEqual(new_nodes,
+                         [TextNode("This is text with a link ", TextType.TEXT),
+                             TextNode("to boot dev", TextType.LINK, "https://www.boot.dev"),
+                             TextNode(" and ", TextType.TEXT),
+                             TextNode("to youtube", TextType.LINK, "https://www.youtube.com/@bootdotdev"
+                         )])
+        self.assertEqual(new_nodes2, [TextNode("This is text with a link ![to boot dev](https://www.boot.dev) and ![to youtube](https://www.youtube.com/@bootdotdev)", TextType.TEXT)])
 
 if __name__ == "__main__":
     unittest.main()
