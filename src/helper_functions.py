@@ -85,4 +85,8 @@ def text_to_textnodes(text):
     nodes = split_nodes_image(nodes)
     return nodes
 
+def markdown_to_blocks(markdown):
+    blocks = re.split(r'\s*\n\n+\s*', markdown.strip())
+    return blocks
+
 
