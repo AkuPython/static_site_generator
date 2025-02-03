@@ -3,6 +3,30 @@ from typing import Text
 from textnode import TextNode, TextType
 from htmlnode import LeafNode
 
+from enum import Enum
+
+class BlockType(Enum):
+    paragraph = "Paragraph"
+    heading = "Heading"
+    code = "Code"
+    quote = "Quote"
+    unordered_list = "Unordered_list"
+    ordered_list = "Ordered_list"
+
+
+class BlockNode:
+    def __init__(self, text, block_type, level=None):
+        self.text = text
+        self.block_type = block_type
+        self.level = level
+
+    def __repr__(self):
+        return f"BlockNode({self.text}, {self.block_type.value}, {self.level})"
+
+    def __eq__(self, other):
+        if self.__repr__() == other.__repr__():
+            return True
+        return False
 
 def text_node_to_html_node(text_node):
     if not isinstance(text_node, TextNode):
@@ -88,5 +112,38 @@ def text_to_textnodes(text):
 def markdown_to_blocks(markdown):
     blocks = re.split(r'\s*\n\n+\s*', markdown.strip())
     return blocks
+
+def block_to_block_type(block):
+    def check_type(cur_block_type, prev_block_type):
+        if prev_block_type in (None, cur_block_type):
+            return True
+        return False
+
+    block_type = None
+    start = None
+    lines = block.split('\n')
+    if block.startswith("```") and block.endswith("```"):
+        lines = []
+        block_type = BlockType.code
+    if len(lines) == 1 and (match := re.match(r'(^#+)(?: )', lines[0])):
+        return BlockNode(lines[0][match.end():], BlockType.heading, level=len(match.group(1)))
+    for line in lines:
+        if line[0] == '>' and check_type(BlockType.code, block_type):
+            block_type = BlockType.code
+        elif line[:2] in ("* ", "- ") and check_type(BlockType.unordered_list, block_type):
+            block_type = BlockType.unordered_list
+        elif (s := re.match(r'^(\d+)\. ', line)) and check_type(BlockType.ordered_list, block_type):
+            if start == None:
+                start = 0
+            if int(s.groups()[0]) == start + 1:
+                start += 1
+                block_type = BlockType.ordered_list
+            else:
+                start = None
+                block_type = BlockType.paragraph
+        else:
+            block_type = BlockType.paragraph
+            break
+    return BlockNode(block, block_type, level=start)
 
 

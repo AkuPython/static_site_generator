@@ -155,6 +155,29 @@ This is a paragraph of text. It has some **bold** and *italic* words inside of i
                          "* This is the first list item in a list block\n* This is a list item\n* This is another list item"
         ])
 
+    def test_block_to_block_type(self):
+        md = '''
+## This is a heading
+
+This is a paragraph of text. It has some **bold** and *italic* words inside of it.
+
+* This is the first list item in a list block
+* This is a list item
+* This is another list item
+    '''
+        md_blocks = helper_functions.markdown_to_blocks(md)
+        blocks = []
+        for block in md_blocks:
+            blocks.append(helper_functions.block_to_block_type(block))
+        self.maxDiff = None
+        self.assertEqual(blocks, [
+            helper_functions.BlockNode("This is a heading", helper_functions.BlockType.heading, level=2),
+            helper_functions.BlockNode("This is a paragraph of text. It has some **bold** and *italic* words inside of it.", helper_functions.BlockType.paragraph, level=None),
+            helper_functions.BlockNode("* This is the first list item in a list block\n* This is a list item\n* This is another list item", helper_functions.BlockType.unordered_list, level=None),
+        ])
+            
+
+
 
 if __name__ == "__main__":
     unittest.main()
