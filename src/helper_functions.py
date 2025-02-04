@@ -1,7 +1,6 @@
 import re
-from typing import Text
 from textnode import TextNode, TextType
-from htmlnode import LeafNode
+from htmlnode import LeafNode, ParentNode
 
 from enum import Enum
 
@@ -61,6 +60,8 @@ def split_nodes_delimiter(old_nodes, delimiter, text_type):
                 if i % 2 == 0:
                     nodes.append(TextNode(text, TextType.TEXT))
                 else:
+                    if text_type == TextType.CODE:
+                        text = text.strip()
                     nodes.append(TextNode(text, text_type))
         else:
             nodes.append(old_node)
@@ -104,7 +105,7 @@ def extract_markdown_links(text):
 def text_to_textnodes(text):
     nodes = split_nodes_delimiter([TextNode(text, TextType.TEXT)], "**", TextType.BOLD) 
     nodes = split_nodes_delimiter(nodes, "*", TextType.ITALIC) 
-    nodes = split_nodes_delimiter(nodes, "`", TextType.CODE)
+    nodes = split_nodes_delimiter(nodes, "```", TextType.CODE)
     nodes = split_nodes_link(nodes)
     nodes = split_nodes_image(nodes)
     return nodes
@@ -128,8 +129,8 @@ def block_to_block_type(block):
     if len(lines) == 1 and (match := re.match(r'(^#+)(?: )', lines[0])):
         return BlockNode(lines[0][match.end():], BlockType.heading, level=len(match.group(1)))
     for line in lines:
-        if line[0] == '>' and check_type(BlockType.code, block_type):
-            block_type = BlockType.code
+        if line[0] == '>' and check_type(BlockType.quote, block_type):
+            block_type = BlockType.quote
         elif line[:2] in ("* ", "- ") and check_type(BlockType.unordered_list, block_type):
             block_type = BlockType.unordered_list
         elif (s := re.match(r'^(\d+)\. ', line)) and check_type(BlockType.ordered_list, block_type):
@@ -146,4 +147,40 @@ def block_to_block_type(block):
             break
     return BlockNode(block, block_type, level=start)
 
+def text_to_children(text, tag):
+    nodes = text_to_textnodes(text)
+    htmlnodes = []
+    for node in nodes:
+         htmlnodes.append(text_node_to_html_node(node))
+    if len(htmlnodes) == 1:
+        htmlnodes[0].tag = tag
+        return htmlnodes[0]
+    return ParentNode(tag, htmlnodes)
 
+def markdown_to_html_node(markdown):
+    html_nodes = []
+    for markdown_block in markdown_to_blocks(markdown):
+        markdown_node = block_to_block_type(markdown_block)
+        match markdown_node.block_type:
+            case markdown_node.block_type.heading:
+                html_nodes.append(text_to_children(markdown_node.text, f"h{markdown_node.level}"))
+            case markdown_node.block_type.paragraph:
+                html_nodes.append(text_to_children(markdown_node.text, "p"))
+            case markdown_node.block_type.unordered_list:
+                li = lambda txt: text_to_children(txt[2:], 'li')
+                ul = ParentNode('ul', list(map(li, markdown_node.text.split('\n'))))
+                html_nodes.append(ul)
+            case markdown_node.block_type.ordered_list:
+                li = lambda txt: text_to_children(txt[txt.find(" ") + 1:], 'li')
+                ol = ParentNode('ol', list(map(li, markdown_node.text.split('\n'))))
+                html_nodes.append(ol)
+            case markdown_node.block_type.code:
+                html_nodes.append(text_to_children(markdown_node.text, "code"))
+            case markdown_node.block_type.quote:
+                text = '\n'.join([i[1:] for i in markdown_node.text.split('\n')])
+                html_nodes.append(text_to_children(text, "blockquote"))
+            case _:
+                print('what is this', markdown_node.block_type)
+    return ParentNode('div', html_nodes)
+
+    

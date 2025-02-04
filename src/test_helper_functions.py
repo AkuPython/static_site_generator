@@ -1,7 +1,7 @@
 import unittest
 
 import helper_functions
-from htmlnode import LeafNode
+from htmlnode import LeafNode, ParentNode
 from textnode import TextNode, TextType
 
 
@@ -124,7 +124,8 @@ class TestHelperFunctions(unittest.TestCase):
 
 
     def test_split_text_to_nodes(self):
-        text = "This is **text** with an *italic* word and a `code block` and an ![obi wan image](https://i.imgur.com/fJRm4Vk.jpeg) and a [link](https://boot.dev)"
+        text = "This is **text** with an *italic* word and a ```code block``` and an ![obi wan image](https://i.imgur.com/fJRm4Vk.jpeg) and a [link](https://boot.dev)"
+        self.maxDiff = None
         self.assertEqual(helper_functions.text_to_textnodes(text),
                          [
                             TextNode("This is ", TextType.TEXT),
@@ -169,13 +170,62 @@ This is a paragraph of text. It has some **bold** and *italic* words inside of i
         blocks = []
         for block in md_blocks:
             blocks.append(helper_functions.block_to_block_type(block))
-        self.maxDiff = None
         self.assertEqual(blocks, [
             helper_functions.BlockNode("This is a heading", helper_functions.BlockType.heading, level=2),
             helper_functions.BlockNode("This is a paragraph of text. It has some **bold** and *italic* words inside of it.", helper_functions.BlockType.paragraph, level=None),
             helper_functions.BlockNode("* This is the first list item in a list block\n* This is a list item\n* This is another list item", helper_functions.BlockType.unordered_list, level=None),
         ])
             
+    def test_block_to_html(self):
+        md = '''
+## This is a heading
+
+This is a paragraph of text. It has some **bold** and *italic* words inside of it.
+
+* This is the first list item in a list block
+* This is a list item
+* This is another list item
+
+1. This is the first list item in a list block
+2. This is a list item
+3. This is another list item
+
+```
+code
+```
+
+>once
+>there
+>was
+>a
+>quote
+    '''
+        html_nodes = helper_functions.markdown_to_html_node(md)
+        self.maxDiff = None
+        self.assertEqual(html_nodes, ParentNode('div',
+                         [
+                         LeafNode('h2', 'This is a heading'),
+                         ParentNode('p', [
+                                    LeafNode(None, "This is a paragraph of text. It has some "),
+                                    LeafNode('b', "bold"),
+                                    LeafNode(None, " and "),
+                                    LeafNode('i', "italic"),
+                                    LeafNode(None, " words inside of it.")
+                                    ]),
+                         ParentNode('ul', [
+                                    LeafNode('li', "This is the first list item in a list block"),
+                                    LeafNode('li', "This is a list item"),
+                                    LeafNode('li', "This is another list item"),
+                                    ]),
+                         ParentNode('ol', [
+                                    LeafNode('li', "This is the first list item in a list block"),
+                                    LeafNode('li', "This is a list item"),
+                                    LeafNode('li', "This is another list item"),
+                                    ]),
+                         LeafNode('code', 'code'),
+                         LeafNode('blockquote', 'once\nthere\nwas\na\nquote')
+                         ]))
+
 
 
 
