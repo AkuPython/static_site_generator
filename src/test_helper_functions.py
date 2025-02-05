@@ -78,10 +78,13 @@ class TestHelperFunctions(unittest.TestCase):
     def test_extract_images(self):
         text = "This is text with a ![rick roll](https://i.imgur.com/aKaOqIh.gif) and ![obi wan](https://i.imgur.com/fJRm4Vk.jpeg)"
         text2 = "This is text with a [rick roll](https://i.imgur.com/aKaOqIh.gif) and [obi wan](https://i.imgur.com/fJRm4Vk.jpeg)"
+        text3 = "![LOTR image artistmonkeys](/images/rivendell.png)"
         self.assertEqual(helper_functions.extract_markdown_images(text), 
                          [("rick roll", "https://i.imgur.com/aKaOqIh.gif"),
                           ("obi wan", "https://i.imgur.com/fJRm4Vk.jpeg")])
         self.assertEqual(helper_functions.extract_markdown_images(text2), [])
+        self.assertEqual(helper_functions.extract_markdown_images(text3), 
+                         [("LOTR image artistmonkeys", "/images/rivendell.png")])
 
     def test_extract_links(self):
         text = "This is text with a link [to boot dev](https://www.boot.dev) and [to youtube](https://www.youtube.com/@bootdotdev)"
@@ -94,10 +97,13 @@ class TestHelperFunctions(unittest.TestCase):
     def test_split_images(self):
         text = "This is text with a ![rick roll](https://i.imgur.com/aKaOqIh.gif) and ![obi wan](https://i.imgur.com/fJRm4Vk.jpeg)"
         text2 = "This is text with a [rick roll](https://i.imgur.com/aKaOqIh.gif) and [obi wan](https://i.imgur.com/fJRm4Vk.jpeg)"
+        text3 = "![LOTR image artistmonkeys](/images/rivendell.png)"
         node = TextNode(text, TextType.TEXT)
         new_nodes = helper_functions.split_nodes_image([node])
         node2 = TextNode(text2, TextType.TEXT)
         new_nodes2 = helper_functions.split_nodes_image([node2])
+        node3 = TextNode(text3, TextType.TEXT)
+        new_nodes3 = helper_functions.split_nodes_image([node3])
         self.assertEqual(new_nodes,
                          [TextNode("This is text with a ", TextType.TEXT),
                              TextNode("rick roll", TextType.IMAGE, "https://i.imgur.com/aKaOqIh.gif"),
@@ -105,6 +111,7 @@ class TestHelperFunctions(unittest.TestCase):
                              TextNode("obi wan", TextType.IMAGE, "https://i.imgur.com/fJRm4Vk.jpeg"
                          )])
         self.assertEqual(new_nodes2, [TextNode("This is text with a [rick roll](https://i.imgur.com/aKaOqIh.gif) and [obi wan](https://i.imgur.com/fJRm4Vk.jpeg)", TextType.TEXT)])
+        self.assertEqual(new_nodes3, [TextNode("LOTR image artistmonkeys", TextType.IMAGE, "/images/rivendell.png")])
 
 
     def test_split_links(self):
@@ -199,6 +206,8 @@ code
 > was
 >a
 >quote
+
+![LOTR image artistmonkeys](/images/rivendell.png)
     '''
         html_nodes = helper_functions.markdown_to_html_node(md)
         self.maxDiff = None
@@ -223,7 +232,8 @@ code
                                     LeafNode('li', "This is another list item"),
                                     ]),
                          LeafNode('code', 'code'),
-                         LeafNode('blockquote', 'once\nthere\nwas\na\nquote')
+                         LeafNode('blockquote', 'once\nthere\nwas\na\nquote'),
+                         LeafNode('img', '', props={"src": "/images/rivendell.png", "alt": "LOTR image artistmonkeys"}),
                          ]))
 
 

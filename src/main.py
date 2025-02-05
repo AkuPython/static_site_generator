@@ -21,16 +21,10 @@ def clean_public(folder=''):
         else:
             clean_public(j([folder + item]))
 
-def make_content_subfolders(file):
-    dirs = file[:file.rfind("/")]
-    if not os.path.exists(dirs):
-        os.makedirs(dirs)
 
 def main():
     clean_public()
-    outfile = 'public/index.html'
-    make_content_subfolders(outfile)
-    helper_functions.generate_page('content/index.md', 'template.html', outfile)
+    helper_functions.generate_pages_recursive('content', 'template.html', 'public')
 
 
 main()

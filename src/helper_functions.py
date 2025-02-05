@@ -1,3 +1,5 @@
+import os
+from os.path import isfile
 import re
 from textnode import TextNode, TextType
 from htmlnode import LeafNode, ParentNode
@@ -11,6 +13,7 @@ class BlockType(Enum):
     quote = "Quote"
     unordered_list = "Unordered_list"
     ordered_list = "Ordered_list"
+    image = "Image"
 
 
 class BlockNode:
@@ -105,7 +108,7 @@ def extract_markdown_links(text):
 def text_to_textnodes(text):
     nodes = split_nodes_delimiter([TextNode(text, TextType.TEXT)], "**", TextType.BOLD) 
     nodes = split_nodes_delimiter(nodes, "*", TextType.ITALIC) 
-    nodes = split_nodes_delimiter(nodes, "```", TextType.CODE)
+    nodes = split_nodes_delimiter(nodes, "`", TextType.CODE)
     nodes = split_nodes_link(nodes)
     nodes = split_nodes_image(nodes)
     return nodes
@@ -119,11 +122,10 @@ def block_to_block_type(block):
         if prev_block_type in (None, cur_block_type):
             return True
         return False
-
     block_type = None
     start = None
     lines = block.split('\n')
-    if block.startswith("```") and block.endswith("```"):
+    if block.startswith("`") and block.endswith("`"):
         lines = []
         block_type = BlockType.code
     if len(lines) == 1 and (match := re.match(r'(^#+)(?: )', lines[0])):
@@ -165,7 +167,11 @@ def markdown_to_html_node(markdown):
             case markdown_node.block_type.heading:
                 html_nodes.append(text_to_children(markdown_node.text, f"h{markdown_node.level}"))
             case markdown_node.block_type.paragraph:
-                html_nodes.append(text_to_children(markdown_node.text, "p"))
+                if re.match(r'^!?\[.+?\]\(.+?\)$', markdown_node.text.strip()):
+                    tn = text_to_textnodes(markdown_node.text)
+                    html_nodes.append(text_node_to_html_node(tn[0]))
+                else:
+                    html_nodes.append(text_to_children(markdown_node.text, "p"))
             case markdown_node.block_type.unordered_list:
                 li = lambda txt: text_to_children(txt[2:], 'li')
                 ul = ParentNode('ul', list(map(li, markdown_node.text.split('\n'))))
@@ -177,7 +183,6 @@ def markdown_to_html_node(markdown):
             case markdown_node.block_type.code:
                 html_nodes.append(text_to_children(markdown_node.text, "code"))
             case markdown_node.block_type.quote:
-                # text = '\n'.join(list(map(lambda i: 
                 text = '\n'.join([ i[(2 if i.startswith('> ') else 1):] for i in markdown_node.text.split('\n') ])
                 html_nodes.append(text_to_children(text, "blockquote"))
             case _:
@@ -190,6 +195,11 @@ def extract_title(markdown):
             return line[2:].strip()
     raise Exception("No H1 header Found")
 
+def make_content_subfolders(file):
+    dirs = file[:file.rfind("/")]
+    if not os.path.exists(dirs):
+        os.makedirs(dirs)
+
 def generate_page(from_path, template_path, dest_path):
     print(f"Generating page from {from_path} to {dest_path} using {template_path}")
     with open(from_path) as fh:
@@ -198,9 +208,18 @@ def generate_page(from_path, template_path, dest_path):
         template = ''.join(fh.readlines())
     outfile = template.replace("{{ Title }}", extract_title(markdown))
     outfile = outfile.replace("{{ Content }}", markdown_to_html_node(markdown).to_html())
-    # assumes the folder was created in main.py
+    make_content_subfolders(dest_path)
     with open(dest_path, 'w+') as fh:
         fh.write(outfile)
 
-        
+def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
+    for item in os.listdir(dir_path_content):
+        current = f'{dir_path_content}/{item}'
+        dest = f'{dest_dir_path}/{item}'
+        if os.path.isfile(current):
+            print(current, template_path, dest_dir_path)
+            generate_page(current, template_path, dest.replace('.md', '.html'))
+        else:
+            print(current, template_path, dest)
+            generate_pages_recursive(current, template_path, dest)
 
