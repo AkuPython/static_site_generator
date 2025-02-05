@@ -177,10 +177,30 @@ def markdown_to_html_node(markdown):
             case markdown_node.block_type.code:
                 html_nodes.append(text_to_children(markdown_node.text, "code"))
             case markdown_node.block_type.quote:
-                text = '\n'.join([i[1:] for i in markdown_node.text.split('\n')])
+                # text = '\n'.join(list(map(lambda i: 
+                text = '\n'.join([ i[(2 if i.startswith('> ') else 1):] for i in markdown_node.text.split('\n') ])
                 html_nodes.append(text_to_children(text, "blockquote"))
             case _:
                 print('what is this', markdown_node.block_type)
     return ParentNode('div', html_nodes)
 
-    
+def extract_title(markdown):
+    for line in markdown.split('\n'):
+        if line.startswith('# '):
+            return line[2:].strip()
+    raise Exception("No H1 header Found")
+
+def generate_page(from_path, template_path, dest_path):
+    print(f"Generating page from {from_path} to {dest_path} using {template_path}")
+    with open(from_path) as fh:
+        markdown = ''.join(fh.readlines())
+    with open(template_path) as fh:
+        template = ''.join(fh.readlines())
+    outfile = template.replace("{{ Title }}", extract_title(markdown))
+    outfile = outfile.replace("{{ Content }}", markdown_to_html_node(markdown).to_html())
+    # assumes the folder was created in main.py
+    with open(dest_path, 'w+') as fh:
+        fh.write(outfile)
+
+        
+
